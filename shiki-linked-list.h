@@ -4,9 +4,17 @@
 #include <stdint.h>
 
 /* USER MODIFICATION PURPOSE START HERE */
+typedef enum{
+    SL_NUMERIC = 0,
+    SL_BOOLEAN = 1,
+    SL_TEXT = 2,
+    SL_POINTER = 3
+} SHLDataTypes;
+
 struct shilink_custom_data{
     char *sl_key;
     char *sl_value;
+    SHLDataTypes sl_data_types;
 };
 
 typedef struct shilink_custom_data SHLinkCustomData;
@@ -24,14 +32,19 @@ void shilink_view_version();
 
 /* USER MODIFICATION PURPOSE START HERE */
 void shilink_fill_data(SHLink *_target, SHLinkCustomData _data);
-int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value);
+int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value, SHLDataTypes _data_types);
 void shilink_free_custom_data(SHLinkCustomData *_data);
+int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomData *_data);
 int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, SHLinkCustomData *_data);
 int8_t shilink_search_data_by_prev_cond(SHLink _target, char *_key, SHLinkCustomData *_prev_cond_data, SHLinkCustomData *_data);
 /* USER MODIFICATION PURPOSE END HERE */
 
 int8_t shilink_push(SHLink *_target, SHLinkCustomData _data);
 int8_t shilink_append(SHLink *_target, SHLinkCustomData _data);
+int8_t shilink_insert_after(SHLink *_target, SHLinkCustomData _data_cond, SHLinkCustomData _data);
+int8_t shilink_insert_before(SHLink *_target, SHLinkCustomData _data_cond, SHLinkCustomData _data);
+int8_t shilink_delete(SHLink *_target, SHLinkCustomData _data);
+int8_t shilink_update(SHLink *_target, SHLinkCustomData _data_old, SHLinkCustomData _data_new);
 void shilink_print(SHLink _target);
 void shilink_free(SHLink *_target);
 

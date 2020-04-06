@@ -1,6 +1,6 @@
 /*
     lib info    : SHIKI_LIB_GROUP - LINKED_LIST
-    ver         : 1.00.20.03.24
+    ver         : 1.00.20.04.06
     author      : Jaya Wikrama, S.T.
     e-mail      : jayawikrama89@gmail.com
     Copyright (c) 2020 HANA,. Jaya Wikrama
@@ -16,9 +16,9 @@
 
 #define var_name(var) #var
 
-#define SHILINK_VER "1.00.20.03.24"
+#define SHILINK_VER "1.00.20.04.06"
 
-int8_t debug_mode_status = 0;
+int8_t debug_mode_status = 1;
 
 static void shilink_debug(const char *function_name, char *debug_type, char *debug_msg, ...){
 	if (debug_mode_status == 1 || strcmp(debug_type, "INFO") != 0){
@@ -64,7 +64,7 @@ static void shilink_debug(const char *function_name, char *debug_type, char *deb
                  msec, debug_type, function_name, tmp_debug_msg
                 );
 	    #else
-            printf("%02d-%02d-%04d %02d:%02d:%02d.%03d %s: %s: %s",
+            printf("%02d-%02d-%04d %02d:%02d:%02d.%03d SCONF %s: %s: %s",
              d_tm->tm_mday, d_tm->tm_mon+1, d_tm->tm_year+1900, d_tm->tm_hour, d_tm->tm_min, d_tm->tm_sec,
              msec, debug_type, function_name, tmp_debug_msg
             );
@@ -122,6 +122,7 @@ void shilink_view_version(){
 void shilink_fill_data(SHLink *_target, SHLinkCustomData _data){
     (*_target)->sl_data.sl_key = _data.sl_key;
     (*_target)->sl_data.sl_value = _data.sl_value;
+    (*_target)->sl_data.sl_data_types = _data.sl_data_types;
 }
 
 static void shilink_print_data(SHLink _data){
@@ -138,25 +139,60 @@ static void shilink_print_data(SHLink _data){
     printf("key = %s; value = %s\n", _data->sl_data.sl_key, _data->sl_data.sl_value);
 }
 
-int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value){
+static int8_t shilink_check_custom_data(SHLinkCustomData _data){
+    if (_data.sl_value == NULL && _data.sl_key == NULL){
+        return -1;
+    }
+    return 0;
+}
+
+static int8_t shilink_compare_custom_data(SHLinkCustomData _data_main, SHLinkCustomData _data_child){
+    if(_data_child.sl_key != NULL && _data_child.sl_value != NULL){
+        if (strcmp(_data_main.sl_key, _data_child.sl_key) == 0 && strcmp(_data_main.sl_value, _data_child.sl_value) == 0){
+            return 0;
+        }
+    }
+    else if (_data_child.sl_key != NULL){
+        if (strcmp(_data_main.sl_key, _data_child.sl_key) == 0){
+            return 0;
+        }
+    }
+    else if (strcmp(_data_main.sl_value, _data_child.sl_value) == 0){
+        return 0;
+    }
+    return -1;
+}
+
+int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value, SHLDataTypes _data_types){
     _data->sl_key = NULL;
     _data->sl_value = NULL;
     
-    _data->sl_key = (char *) malloc(strlen(_key) + 1);
-    if (_data->sl_key == NULL){
-        shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
-        return -1;
+    if (_key != NULL){
+        _data->sl_key = (char *) malloc(strlen(_key) + 1);
+        if (_data->sl_key == NULL){
+            shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
+            return -1;
+        }
     }
-    _data->sl_value = (char *) malloc(strlen(_value) + 1);
-    if (_data->sl_value == NULL){
-        shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
-        free(_data->sl_key);
-        _data->sl_key = NULL;
-        return -1;
+    if (_value != NULL){
+        _data->sl_value = (char *) malloc(strlen(_value) + 1);
+        if (_data->sl_value == NULL){
+            shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
+            if (_key != NULL){
+                free(_data->sl_key);
+                _data->sl_key = NULL;
+            }
+            return -1;
+        }
     }
 
-    strcpy(_data->sl_key, _key);
-    strcpy(_data->sl_value, _value);
+    if (_key != NULL){
+        strcpy(_data->sl_key, _key);
+    }
+    if (_value != NULL){
+        strcpy(_data->sl_value, _value);
+    }
+    _data->sl_data_types = _data_types;
     return 0;
 }
 
@@ -166,6 +202,29 @@ void shilink_free_custom_data(SHLinkCustomData *_data){
 
     _data->sl_key = NULL;
     _data->sl_value = NULL;
+    _data->sl_data_types = SL_TEXT;
+}
+
+int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomData *_data){
+    int8_t idx_pos = -1;
+    while (idx_pos < _pos){
+        if (_target == NULL){
+            break;
+        }
+        if (idx_pos < _pos - 1){
+            _target = _target->sh_next;
+        }
+        idx_pos++;
+    }
+    if (_target != NULL){
+        _data->sl_key = _target->sl_data.sl_key;
+        _data->sl_value = _target->sl_data.sl_value;
+        _data->sl_data_types = _target->sl_data.sl_data_types;
+    }
+    else if (idx_pos < _pos){
+        return -1;
+    }
+    return 0;
 }
 
 int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, SHLinkCustomData *_data){
@@ -182,7 +241,6 @@ int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, 
             _target = _target->sh_next;
         }
         if (idx_pos == _pos){
-            shilink_debug(__func__, "INFO", "data found as: %s\n", _data->sl_value);
             return 0;
         }
         if (_target == NULL){
@@ -190,7 +248,6 @@ int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, 
         }
     }
     if (idx_pos == -1){
-        shilink_debug(__func__, "ERROR", "data not found\n");
         return -1;
     }
     shilink_debug(__func__, "WARNING", "data found with invalid position\n");
@@ -229,7 +286,7 @@ int8_t shilink_search_data_by_prev_cond(SHLink _target, char *_key, SHLinkCustom
 
 int8_t shilink_push(SHLink *_target, SHLinkCustomData _data){
     SHLink new_data = NULL;
-    new_data = (SHLink) malloc(sizeof(SHLink));
+    new_data = (SHLink) malloc(sizeof(struct shilink_var));
     if (new_data == NULL){
         shilink_debug(__func__, "ERROR", "failed to allocate memory\n");
         return -1;
@@ -242,7 +299,7 @@ int8_t shilink_push(SHLink *_target, SHLinkCustomData _data){
 
 int8_t shilink_append(SHLink *_target, SHLinkCustomData _data){
     SHLink new_data = NULL;
-    new_data = (SHLink) malloc(sizeof(SHLink));
+    new_data = (SHLink) malloc(sizeof(struct shilink_var));
     if (new_data == NULL){
         shilink_debug(__func__, "ERROR", "failed to allocate memory\n");
         return -1;
@@ -262,6 +319,138 @@ int8_t shilink_append(SHLink *_target, SHLinkCustomData _data){
     }
 
     end_of_target->sh_next = new_data;
+    return 0;
+}
+
+static int8_t shilink_insert(SHLink *_target, SHLinkCustomData _data_cond, SHLinkCustomData _data, int8_t _mode){
+    if (shilink_check_custom_data(_data) != 0){
+        shilink_debug(__func__, "ERROR", "_data_new is not set. process aborted\n");
+        return -1;
+    }
+
+    if (*_target == NULL){
+        shilink_debug(__func__, "ERROR", "_target (null). process aborted\n");
+        return -1;
+    }
+
+    SHLink tmp = NULL;
+    SHLink prev = NULL;
+
+    tmp = *_target;
+
+    while(tmp != NULL){
+        if (shilink_compare_custom_data(tmp->sl_data, _data_cond) == 0){
+            break;
+        }
+        prev = tmp;
+        tmp = tmp->sh_next;
+    }
+
+    if (tmp == NULL){
+        shilink_debug(__func__, "WARNING", "cond_data not found. process aborted\n");
+        return -2;
+    }
+    
+    if (_mode == 0){ // insert after
+        prev = tmp;
+        tmp = tmp->sh_next;
+    }
+
+    SHLink new_data = NULL;
+    new_data = (SHLink) malloc(sizeof(struct shilink_var));
+    if (new_data == NULL){
+        shilink_debug(__func__, "ERROR", "failed to allocate memory\n");
+        return -1;
+    }
+    shilink_fill_data(&new_data, _data);
+    new_data->sh_next = tmp;
+
+    prev->sh_next = new_data;
+
+    return 0;
+}
+
+int8_t shilink_insert_after(SHLink *_target, SHLinkCustomData _data_cond, SHLinkCustomData _data){
+    return shilink_insert(_target, _data_cond, _data, 0);
+}
+
+int8_t shilink_insert_before(SHLink *_target, SHLinkCustomData _data_cond, SHLinkCustomData _data){
+    return shilink_insert(_target, _data_cond, _data, 1);
+}
+
+int8_t shilink_delete(SHLink *_target, SHLinkCustomData _data){
+    if (shilink_check_custom_data(_data) != 0){
+        shilink_debug(__func__, "ERROR", "_data is not set. process aborted\n");
+        return -1;
+    }
+
+    if (*_target == NULL){
+        shilink_debug(__func__, "ERROR", "_target (null). process aborted\n");
+        return -1;
+    }
+
+    SHLink tmp = NULL;
+    SHLink prev = NULL;
+
+    tmp = *_target;
+
+    while(tmp != NULL){
+        if (shilink_compare_custom_data(tmp->sl_data, _data) == 0){
+            break;
+        }
+        prev = tmp;
+        tmp = tmp->sh_next;
+    }
+
+    if (tmp == NULL){
+        return -2;
+    }
+
+    prev->sh_next = tmp->sh_next;
+
+    shilink_free_custom_data(&tmp->sl_data);
+    free(tmp);
+    tmp = NULL;
+
+    return 0;
+}
+
+int8_t shilink_update(SHLink *_target, SHLinkCustomData _data_old, SHLinkCustomData _data_new){
+    if (shilink_check_custom_data(_data_old) != 0){
+        shilink_debug(__func__, "ERROR", "_data_old is not set. process aborted\n");
+        return -1;
+    }
+
+    if (shilink_check_custom_data(_data_new) != 0){
+        shilink_debug(__func__, "ERROR", "_data_new is not set. process aborted\n");
+        return -1;
+    }
+
+    if (*_target == NULL){
+        shilink_debug(__func__, "ERROR", "_target (null). process aborted\n");
+        return -1;
+    }
+
+    SHLink tmp = NULL;
+    SHLink prev = NULL;
+
+    tmp = *_target;
+
+    while(tmp != NULL){
+        if (shilink_compare_custom_data(tmp->sl_data, _data_old) == 0){
+            break;
+        }
+        prev = tmp;
+        tmp = tmp->sh_next;
+    }
+
+    if (tmp == NULL){
+        return -2;
+    }
+
+    shilink_free_custom_data(&tmp->sl_data);
+    shilink_fill_data(&tmp, _data_new);
+
     return 0;
 }
 
