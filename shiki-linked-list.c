@@ -1,6 +1,6 @@
 /*
     lib info    : SHIKI_LIB_GROUP - LINKED_LIST
-    ver         : 1.00.20.04.06
+    ver         : 1.01.20.04.17
     author      : Jaya Wikrama, S.T.
     e-mail      : jayawikrama89@gmail.com
     Copyright (c) 2020 HANA,. Jaya Wikrama
@@ -74,24 +74,6 @@ static void shilink_debug(const char *function_name, char *debug_type, char *deb
     }
 }
 
-static void shilink_get_var_name_from_struct(char *_struct_name, char *_full_varname, char *_varname_result){
-    uint8_t idx_start = 0;
-    uint8_t idx_result = 0;
-    idx_start = strlen(_struct_name);
-
-    char result[strlen(_full_varname) - idx_start + 1];
-    memset(result, 0x00, sizeof(result));
-
-    do {
-        if (_full_varname[idx_start] != '-' && _full_varname[idx_start] != '>' && _full_varname[idx_start] != '.'){
-            result[idx_result] = _full_varname[idx_start]; 
-            idx_result++;
-        }
-        idx_start++;
-    } while (idx_start < strlen(_full_varname));
-    strcpy(_varname_result, result);
-}
-
 long shilink_get_version(char *_version){
     strcpy(_version, SHILINK_VER);
     long version_in_long = 0;
@@ -126,16 +108,6 @@ void shilink_fill_data(SHLink *_target, SHLinkCustomData _data){
 }
 
 static void shilink_print_data(SHLink _data){
-    /*
-    char var_key[strlen(var_name(_data->sl_data.sl_key)) - strlen(var_name(_data->sl_data)) + 1];
-    char var_value[strlen(var_name(_data->sl_data.sl_value)) - strlen(var_name(_data->sl_data)) + 1];
-    shilink_get_var_name_from_struct(var_name(_data->sl_data), var_name(_data->sl_data.sl_key), var_key);
-    shilink_get_var_name_from_struct(var_name(_data->sl_data), var_name(_data->sl_data.sl_value), var_value);
-
-
-    printf("%s: %s\n", var_key, _data->sl_data.sl_key);
-    printf("%s: %s\n", var_value, _data->sl_data.sl_value);
-    */
     printf("key = %s; value = %s\n", _data->sl_data.sl_key, _data->sl_data.sl_value);
 }
 
@@ -351,7 +323,7 @@ static int8_t shilink_insert(SHLink *_target, SHLinkCustomData _data_cond, SHLin
         return -2;
     }
     
-    if (_mode == 0){ // insert after
+    if (_mode == 0){
         prev = tmp;
         tmp = tmp->sh_next;
     }
@@ -432,7 +404,6 @@ int8_t shilink_update(SHLink *_target, SHLinkCustomData _data_old, SHLinkCustomD
     }
 
     SHLink tmp = NULL;
-    SHLink prev = NULL;
 
     tmp = *_target;
 
@@ -440,7 +411,6 @@ int8_t shilink_update(SHLink *_target, SHLinkCustomData _data_old, SHLinkCustomD
         if (shilink_compare_custom_data(tmp->sl_data, _data_old) == 0){
             break;
         }
-        prev = tmp;
         tmp = tmp->sh_next;
     }
 
