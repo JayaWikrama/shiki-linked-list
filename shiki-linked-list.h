@@ -37,23 +37,23 @@ void shilink_view_version();
 void shilink_fill_data(SHLink *_target, SHLinkCustomData _data);
 int8_t shilink_fill_custom_data(
  SHLinkCustomData *_data,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
- void *_value,
+ const void *_value,
  uint16_t _sizeof_value,
  SHLDataTypes _data_types
 );
 void shilink_free_custom_data(SHLinkCustomData *_data);
 uint16_t shilink_count_data_by_key(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key
 );
 uint16_t shilink_count_data_by_key_val(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
- void *_value,
+ const void *_value,
  uint16_t _sizeof_val
 );
 int8_t shilink_get_data_by_position(
@@ -63,21 +63,21 @@ int8_t shilink_get_data_by_position(
 );
 int8_t shilink_search_data_by_position(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  int16_t _pos,
  SHLinkCustomData *_data
 );
 int8_t shilink_search_data_by_prev_cond(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  SHLinkCustomData *_prev_cond_data,
  SHLinkCustomData *_data
 );
 int8_t shilink_search_data_by_pos_and_prev_cond(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  int16_t _pos,
  SHLinkCustomData *_prev_cond_data,

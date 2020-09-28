@@ -28,7 +28,7 @@ typedef enum {
   SHILINK_DEBUG_CRITICAL = 0x04
 } shilink_debug_type;
 
-static void shilink_debug(const char *_function_name, shilink_debug_type _debug_type, char *_debug_msg, ...){
+static void shilink_debug(const char *_function_name, shilink_debug_type _debug_type, const char *_debug_msg, ...){
 	if (debug_mode_status == 1 || _debug_type != SHILINK_DEBUG_INFO){
         struct tm *d_tm = NULL;
         struct timeval tm_debug;
@@ -113,7 +113,7 @@ void shilink_fill_data(SHLink *_target, SHLinkCustomData _data){
     (*_target)->sl_data.sl_data_types = _data.sl_data_types;
 }
 
-static void shilink_print_data(SHLink _data){
+static void shilink_print_data(const SHLink _data){
     char sldata_type[8];
     if (_data->sl_data.sl_data_types == SL_BOOLEAN){
         strcpy(sldata_type, "BOOLEAN");
@@ -173,9 +173,9 @@ static int8_t shilink_compare_custom_data(SHLinkCustomData _data_main, SHLinkCus
 
 int8_t shilink_fill_custom_data(
  SHLinkCustomData *_data,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
- void *_value,
+ const void *_value,
  uint16_t _sizeof_value,
  SHLDataTypes _data_types
 ){
@@ -230,7 +230,7 @@ void shilink_free_custom_data(SHLinkCustomData *_data){
 
 uint16_t shilink_count_data_by_key(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key
 ){
     uint16_t idx_pos = 0;
@@ -248,9 +248,9 @@ uint16_t shilink_count_data_by_key(
 
 uint16_t shilink_count_data_by_key_val(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
- void *_value,
+ const void *_value,
  uint16_t _sizeof_val
 ){
     uint16_t idx_pos = 0;
@@ -294,7 +294,7 @@ int8_t shilink_get_data_by_position(SHLink _target, int16_t _pos, SHLinkCustomDa
 
 int8_t shilink_search_data_by_position(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  int16_t _pos,
  SHLinkCustomData *_data
@@ -332,7 +332,7 @@ int8_t shilink_search_data_by_position(
 
 int8_t shilink_search_data_by_prev_cond(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  SHLinkCustomData *_prev_cond_data,
  SHLinkCustomData *_data
@@ -381,7 +381,7 @@ int8_t shilink_search_data_by_prev_cond(
 
 int8_t shilink_search_data_by_pos_and_prev_cond(
  SHLink _target,
- void *_key,
+ const void *_key,
  uint16_t _sizeof_key,
  int16_t _pos,
  SHLinkCustomData *_prev_cond_data,
