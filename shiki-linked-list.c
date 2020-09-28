@@ -1,6 +1,6 @@
 /*
     lib info    : SHIKI_LIB_GROUP - LINKED_LIST
-    ver         : 1.01.20.04.17
+    ver         : 1.02.20.04.23
     author      : Jaya Wikrama, S.T.
     e-mail      : jayawikrama89@gmail.com
     Copyright (c) 2020 HANA,. Jaya Wikrama
@@ -16,7 +16,7 @@
 
 #define var_name(var) #var
 
-#define SHILINK_VER "1.00.20.04.06"
+#define SHILINK_VER "1.02.20.04.23"
 
 int8_t debug_mode_status = 1;
 
@@ -104,11 +104,33 @@ void shilink_view_version(){
 void shilink_fill_data(SHLink *_target, SHLinkCustomData _data){
     (*_target)->sl_data.sl_key = _data.sl_key;
     (*_target)->sl_data.sl_value = _data.sl_value;
+    (*_target)->sl_data.sl_keysize = _data.sl_keysize;
+    (*_target)->sl_data.sl_valsize = _data.sl_valsize;
     (*_target)->sl_data.sl_data_types = _data.sl_data_types;
 }
 
 static void shilink_print_data(SHLink _data){
-    printf("key = %s; value = %s\n", _data->sl_data.sl_key, _data->sl_data.sl_value);
+    char sldata_type[8];
+    if (_data->sl_data.sl_data_types == SL_BOOLEAN){
+        strcpy(sldata_type, "BOOLEAN");
+    }
+    else if (_data->sl_data.sl_data_types == SL_POINTER){
+        strcpy(sldata_type, "POINTER");
+    }
+    else if (_data->sl_data.sl_data_types == SL_TEXT){
+        strcpy(sldata_type, "STRING");
+    }
+    else if (_data->sl_data.sl_data_types == SL_NUMERIC){
+        strcpy(sldata_type, "NUMERIC");
+    }
+    else if (_data->sl_data.sl_data_types == SL_FLOAT){
+        strcpy(sldata_type, "FLOAT");
+    }
+    printf("key = %s; value = %s; type = %s\n",
+     (unsigned char *) _data->sl_data.sl_key,
+     (unsigned char *) _data->sl_data.sl_value,
+     sldata_type
+    );
 }
 
 static int8_t shilink_check_custom_data(SHLinkCustomData _data){
@@ -120,34 +142,53 @@ static int8_t shilink_check_custom_data(SHLinkCustomData _data){
 
 static int8_t shilink_compare_custom_data(SHLinkCustomData _data_main, SHLinkCustomData _data_child){
     if(_data_child.sl_key != NULL && _data_child.sl_value != NULL){
-        if (strcmp(_data_main.sl_key, _data_child.sl_key) == 0 && strcmp(_data_main.sl_value, _data_child.sl_value) == 0){
-            return 0;
+        if (_data_main.sl_keysize == _data_child.sl_keysize &&
+         _data_main.sl_valsize == _data_child.sl_valsize
+        ){
+            if (memcmp(_data_main.sl_key, _data_child.sl_key, _data_main.sl_keysize) == 0 &&
+             memcmp(_data_main.sl_value, _data_child.sl_value, _data_main.sl_valsize) == 0
+            ){
+                return 0;
+            }
         }
     }
     else if (_data_child.sl_key != NULL){
-        if (strcmp(_data_main.sl_key, _data_child.sl_key) == 0){
-            return 0;
+        if (_data_main.sl_keysize == _data_child.sl_keysize){
+            if (memcmp(_data_main.sl_key, _data_child.sl_key, _data_main.sl_keysize) == 0){
+                return 0;
+            }
         }
     }
-    else if (strcmp(_data_main.sl_value, _data_child.sl_value) == 0){
-        return 0;
+    else if (_data_main.sl_valsize == _data_child.sl_valsize){
+        if (memcmp(_data_main.sl_value, _data_child.sl_value, _data_main.sl_valsize) == 0){
+            return 0;
+        }
     }
     return -1;
 }
 
-int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value, SHLDataTypes _data_types){
+int8_t shilink_fill_custom_data(
+ SHLinkCustomData *_data,
+ void *_key,
+ uint16_t _sizeof_key,
+ void *_value,
+ uint16_t _sizeof_value,
+ SHLDataTypes _data_types
+){
     _data->sl_key = NULL;
     _data->sl_value = NULL;
+    _data->sl_keysize = _sizeof_key;
+    _data->sl_valsize = _sizeof_value;
     
     if (_key != NULL){
-        _data->sl_key = (char *) malloc(strlen(_key) + 1);
+        _data->sl_key = (char *) malloc(_sizeof_key + 1);
         if (_data->sl_key == NULL){
             shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
             return -1;
         }
     }
     if (_value != NULL){
-        _data->sl_value = (char *) malloc(strlen(_value) + 1);
+        _data->sl_value = (char *) malloc(_sizeof_value + 1);
         if (_data->sl_value == NULL){
             shilink_debug(__func__, "ERROR", "failed to allocate memory. process aborted!\n");
             if (_key != NULL){
@@ -159,10 +200,12 @@ int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_valu
     }
 
     if (_key != NULL){
-        strcpy(_data->sl_key, _key);
+        memset(_data->sl_key, 0x00, _sizeof_key + 1);
+        memcpy(_data->sl_key, _key, _sizeof_key);
     }
     if (_value != NULL){
-        strcpy(_data->sl_value, _value);
+        memset(_data->sl_value, 0x00, _sizeof_value + 1);
+        memcpy(_data->sl_value, _value, _sizeof_value);
     }
     _data->sl_data_types = _data_types;
     return 0;
@@ -170,15 +213,59 @@ int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_valu
 
 void shilink_free_custom_data(SHLinkCustomData *_data){
     free(_data->sl_key);
-    free(_data->sl_value);
+    if (_data->sl_value != NULL){
+        free(_data->sl_value);
+    }
 
+    _data->sl_keysize = 0;
+    _data->sl_valsize = 0;
     _data->sl_key = NULL;
     _data->sl_value = NULL;
     _data->sl_data_types = SL_TEXT;
 }
 
-int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomData *_data){
-    int8_t idx_pos = -1;
+uint16_t shilink_count_data_by_key(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key
+){
+    uint16_t idx_pos = 0;
+    while (_target != NULL){
+        if (_sizeof_key == _target->sl_data.sl_keysize){
+            if(memcmp(_target->sl_data.sl_key, _key, _sizeof_key) == 0){
+                idx_pos++;
+                _target = _target->sh_next;
+            }
+        }
+        _target = _target->sh_next;
+    }
+    return idx_pos;
+}
+
+uint16_t shilink_count_data_by_key_val(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ void *_value,
+ uint16_t _sizeof_val
+){
+    uint16_t idx_pos = 0;
+    while (_target != NULL){
+        if (_sizeof_key == _target->sl_data.sl_keysize && _sizeof_val == _target->sl_data.sl_valsize){
+            if(memcmp(_target->sl_data.sl_key, _key, _sizeof_key) == 0 &&
+             memcmp(_target->sl_data.sl_value, _value, _sizeof_val) == 0
+            ){
+                idx_pos++;
+                _target = _target->sh_next;
+            }
+        }
+        _target = _target->sh_next;
+    }
+    return idx_pos;
+}
+
+int8_t shilink_get_data_by_position(SHLink _target, int16_t _pos, SHLinkCustomData *_data){
+    int16_t idx_pos = -1;
     while (idx_pos < _pos){
         if (_target == NULL){
             break;
@@ -191,6 +278,8 @@ int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomDat
     if (_target != NULL){
         _data->sl_key = _target->sl_data.sl_key;
         _data->sl_value = _target->sl_data.sl_value;
+        _data->sl_keysize = _target->sl_data.sl_keysize;
+        _data->sl_valsize = _target->sl_data.sl_valsize;
         _data->sl_data_types = _target->sl_data.sl_data_types;
     }
     else if (idx_pos < _pos){
@@ -199,16 +288,28 @@ int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomDat
     return 0;
 }
 
-int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, SHLinkCustomData *_data){
-    int8_t idx_pos = -1;
+int8_t shilink_search_data_by_position(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ int16_t _pos,
+ SHLinkCustomData *_data
+){
+    int16_t idx_pos = -1;
     while (idx_pos < _pos){
         while (_target != NULL){
-            if(strcmp(_target->sl_data.sl_key, _key) == 0){
-                _data->sl_key = _target->sl_data.sl_key;
-                _data->sl_value = _target->sl_data.sl_value;
-                idx_pos++;
-                _target = _target->sh_next;
-                break;
+            if (_sizeof_key == _target->sl_data.sl_keysize){
+                if(memcmp(_target->sl_data.sl_key, _key, _sizeof_key) == 0){
+                    _data->sl_key = _target->sl_data.sl_key;
+                    _data->sl_value = _target->sl_data.sl_value;
+                    _data->sl_keysize = _target->sl_data.sl_keysize;
+                    _data->sl_valsize = _target->sl_data.sl_valsize;
+                    idx_pos++;
+                    _target = _target->sh_next;
+                    if (idx_pos == _pos){
+                        break;
+                    }
+                }
             }
             _target = _target->sh_next;
         }
@@ -222,16 +323,32 @@ int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, 
     if (idx_pos == -1){
         return -1;
     }
-    shilink_debug(__func__, "WARNING", "data found with invalid position\n");
     return 1;
 }
 
-int8_t shilink_search_data_by_prev_cond(SHLink _target, char *_key, SHLinkCustomData *_prev_cond_data, SHLinkCustomData *_data){
+int8_t shilink_search_data_by_prev_cond(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ SHLinkCustomData *_prev_cond_data,
+ SHLinkCustomData *_data
+){
+    if (_target == NULL){
+        shilink_free_custom_data(_prev_cond_data);
+        shilink_debug(__func__, "ERROR", "_target is NULL pointer\n");
+        return -1;
+    }
     while (_target != NULL){
         while (_target != NULL){
-            if(strcmp(_target->sl_data.sl_key, _prev_cond_data->sl_key) == 0 && strcmp(_target->sl_data.sl_value, _prev_cond_data->sl_value) == 0){
-                _target = _target->sh_next;
-                break;
+            if (_prev_cond_data->sl_keysize == _target->sl_data.sl_keysize &&
+             _prev_cond_data->sl_valsize == _target->sl_data.sl_valsize
+            ){
+                if(memcmp(_target->sl_data.sl_key, _prev_cond_data->sl_key, _prev_cond_data->sl_keysize) == 0 &&
+                 memcmp(_target->sl_data.sl_value, _prev_cond_data->sl_value, _prev_cond_data->sl_valsize) == 0
+                ){
+                    _target = _target->sh_next;
+                    break;
+                }
             }
             _target = _target->sh_next;
         }
@@ -242,11 +359,71 @@ int8_t shilink_search_data_by_prev_cond(SHLink _target, char *_key, SHLinkCustom
             break;
         }
         while (_target != NULL){
-            if(strcmp(_target->sl_data.sl_key, _key) == 0){
-                _data->sl_key = _target->sl_data.sl_key;
-                _data->sl_value = _target->sl_data.sl_value;
-                shilink_debug(__func__, "INFO", "data found as: %s\n", _data->sl_value);
-                return 0;
+            if (_sizeof_key == _target->sl_data.sl_keysize){
+                if(memcmp(_target->sl_data.sl_key, _key, _sizeof_key) == 0){
+                    _data->sl_key = _target->sl_data.sl_key;
+                    _data->sl_value = _target->sl_data.sl_value;
+                    _data->sl_keysize = _target->sl_data.sl_keysize;
+                    _data->sl_valsize = _target->sl_data.sl_valsize;
+                    return 0;
+                }
+            }
+            _target = _target->sh_next;
+        }
+    }
+    shilink_debug(__func__, "WARNING", "data not found\n");
+    return -1;
+}
+
+int8_t shilink_search_data_by_pos_and_prev_cond(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ int16_t _pos,
+ SHLinkCustomData *_prev_cond_data,
+ SHLinkCustomData *_data
+){
+    int16_t idx_pos = -1;
+    if (_target == NULL){
+        shilink_free_custom_data(_prev_cond_data);
+        shilink_debug(__func__, "ERROR", "_target is NULL pointer\n");
+        return -1;
+    }
+    while (_target != NULL){
+        while (_target != NULL){
+            if (_prev_cond_data->sl_keysize == _target->sl_data.sl_keysize &&
+             _prev_cond_data->sl_valsize == _target->sl_data.sl_valsize
+            ){
+                if(memcmp(_target->sl_data.sl_key, _prev_cond_data->sl_key, _prev_cond_data->sl_keysize) == 0 &&
+                 memcmp(_target->sl_data.sl_value, _prev_cond_data->sl_value, _prev_cond_data->sl_valsize) == 0
+                ){
+                    _target = _target->sh_next;
+                    idx_pos++;
+                    if (idx_pos == _pos){
+                        break;
+                    }
+                }
+            }
+            _target = _target->sh_next;
+        }
+        shilink_free_custom_data(_prev_cond_data);
+        if (_target == NULL){
+            shilink_debug(__func__, "ERROR", "condition not found\n");
+            return -1;
+        }
+        else if (_pos != idx_pos){
+            shilink_debug(__func__, "ERROR", "position not found\n");
+            return -2;
+        }
+        while (_target != NULL){
+            if (_sizeof_key == _target->sl_data.sl_keysize){
+                if(memcmp(_target->sl_data.sl_key, _key, _sizeof_key) == 0){
+                    _data->sl_key = _target->sl_data.sl_key;
+                    _data->sl_value = _target->sl_data.sl_value;
+                    _data->sl_keysize = _target->sl_data.sl_keysize;
+                    _data->sl_valsize = _target->sl_data.sl_valsize;
+                    return 0;
+                }
             }
             _target = _target->sh_next;
         }
@@ -365,6 +542,7 @@ int8_t shilink_delete(SHLink *_target, SHLinkCustomData _data){
     SHLink prev = NULL;
 
     tmp = *_target;
+    prev = tmp;
 
     while(tmp != NULL){
         if (shilink_compare_custom_data(tmp->sl_data, _data) == 0){

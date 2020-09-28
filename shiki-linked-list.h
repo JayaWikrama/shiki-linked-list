@@ -8,12 +8,15 @@ typedef enum{
     SL_NUMERIC = 0,
     SL_BOOLEAN = 1,
     SL_TEXT = 2,
-    SL_POINTER = 3
+    SL_POINTER = 3,
+    SL_FLOAT = 4
 } SHLDataTypes;
 
 struct shilink_custom_data{
-    char *sl_key;
-    char *sl_value;
+    void *sl_key;
+    void *sl_value;
+    uint16_t sl_keysize;
+    uint16_t sl_valsize;
     SHLDataTypes sl_data_types;
 };
 
@@ -32,11 +35,54 @@ void shilink_view_version();
 
 /* USER MODIFICATION PURPOSE START HERE */
 void shilink_fill_data(SHLink *_target, SHLinkCustomData _data);
-int8_t shilink_fill_custom_data(SHLinkCustomData *_data, char *_key, char *_value, SHLDataTypes _data_types);
+int8_t shilink_fill_custom_data(
+ SHLinkCustomData *_data,
+ void *_key,
+ uint16_t _sizeof_key,
+ void *_value,
+ uint16_t _sizeof_value,
+ SHLDataTypes _data_types
+);
 void shilink_free_custom_data(SHLinkCustomData *_data);
-int8_t shilink_get_data_by_position(SHLink _target, int8_t _pos, SHLinkCustomData *_data);
-int8_t shilink_search_data_by_position(SHLink _target, char *_key, int8_t _pos, SHLinkCustomData *_data);
-int8_t shilink_search_data_by_prev_cond(SHLink _target, char *_key, SHLinkCustomData *_prev_cond_data, SHLinkCustomData *_data);
+uint16_t shilink_count_data_by_key(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key
+);
+uint16_t shilink_count_data_by_key_val(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ void *_value,
+ uint16_t _sizeof_val
+);
+int8_t shilink_get_data_by_position(
+ SHLink _target,
+ int16_t _pos,
+ SHLinkCustomData *_data
+);
+int8_t shilink_search_data_by_position(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ int16_t _pos,
+ SHLinkCustomData *_data
+);
+int8_t shilink_search_data_by_prev_cond(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ SHLinkCustomData *_prev_cond_data,
+ SHLinkCustomData *_data
+);
+int8_t shilink_search_data_by_pos_and_prev_cond(
+ SHLink _target,
+ void *_key,
+ uint16_t _sizeof_key,
+ int16_t _pos,
+ SHLinkCustomData *_prev_cond_data,
+ SHLinkCustomData *_data
+);
 /* USER MODIFICATION PURPOSE END HERE */
 
 int8_t shilink_push(SHLink *_target, SHLinkCustomData _data);
