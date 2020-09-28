@@ -1,6 +1,6 @@
 /*
     lib info    : SHIKI_LIB_GROUP - LINKED_LIST
-    ver         : 1.02.20.04.23
+    ver         : 1.03.20.09.28
     author      : Jaya Wikrama, S.T.
     e-mail      : jayawikrama89@gmail.com
     Copyright (c) 2020 HANA,. Jaya Wikrama
@@ -16,7 +16,7 @@
 
 #define var_name(var) #var
 
-#define SHILINK_VER "1.02.20.04.23"
+#define SHILINK_VER "1.03.20.09.28"
 
 int8_t debug_mode_status = 1;
 
