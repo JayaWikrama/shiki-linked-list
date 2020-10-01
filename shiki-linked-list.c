@@ -1,6 +1,6 @@
 /*
     lib info    : SHIKI_LIB_GROUP - LINKED_LIST
-    ver         : 1.03.20.09.28
+    ver         : 1.04.20.10.01
     author      : Jaya Wikrama, S.T.
     e-mail      : jayawikrama89@gmail.com
     Copyright (c) 2020 HANA,. Jaya Wikrama
@@ -16,7 +16,7 @@
 
 #define var_name(var) #var
 
-#define SHILINK_VER "1.03.20.09.28"
+#define SHILINK_VER "1.04.20.10.01"
 
 int8_t debug_mode_status = 1;
 
@@ -548,19 +548,22 @@ int8_t shilink_delete(SHLink *_target, SHLinkCustomData _data){
     tmp = *_target;
     prev = tmp;
 
-    while(tmp != NULL){
-        if (shilink_compare_custom_data(tmp->sl_data, _data) == 0){
-            break;
+    if (shilink_compare_custom_data(tmp->sl_data, _data)){
+        while(tmp != NULL){
+            if (!shilink_compare_custom_data(tmp->sl_data, _data)){
+                break;
+            }
+            prev = tmp;
+            tmp = tmp->sh_next;
         }
-        prev = tmp;
-        tmp = tmp->sh_next;
+        if (tmp == NULL){
+            return -2;
+        }
+        prev->sh_next = tmp->sh_next;
     }
-
-    if (tmp == NULL){
-        return -2;
+    else {
+        *_target = (*_target)->sh_next;
     }
-
-    prev->sh_next = tmp->sh_next;
 
     shilink_free_custom_data(&tmp->sl_data);
     free(tmp);
